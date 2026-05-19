@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KBAI Progress Tracker</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <h1 class="sr-only">CS7637 KBAI progress tracker with persistent checkboxes, ARC log, grade tracker, and weekly card</h1>
+
+  <div class="app">
+    <nav class="nav" aria-label="Tracker sections">
+      <button class="ntab" onclick="goTab(this,'dashboard')">Dashboard</button>
+      <button class="ntab on" onclick="goTab(this,'weeks')">Weeks</button>
+      <button class="ntab" onclick="goTab(this,'arclog')">ARC log</button>
+      <button class="ntab" onclick="goTab(this,'grades')">Grades</button>
+      <button class="ntab" onclick="goTab(this,'weekly')">Weekly card</button>
+    </nav>
+
+    <section class="storage-panel" aria-label="Storage controls">
+      <div class="storage-top">
+        <div>
+          <div class="storage-title">Storage</div>
+          <div class="storage-help">Use a local JSON data file for durable progress. Put it in this KBAI folder or a synced folder like Google Drive/iCloud/Dropbox to use it across browsers and machines.</div>
+        </div>
+        <div class="storage-actions">
+          <button class="btn-p" onclick="createDataFile()">Create data file</button>
+          <button class="btn-s" onclick="connectDataFile()">Connect file</button>
+          <button class="btn-s" onclick="saveSnapshot()">Save snapshot</button>
+          <button class="btn-s" onclick="exportBackup()">Export backup</button>
+          <button class="btn-s" onclick="document.getElementById('backupImport').click()">Import backup</button>
+          <input id="backupImport" type="file" accept="application/json,.json" onchange="importBackup(this)">
+        </div>
+      </div>
+      <div class="storage-status" id="storage-status">Using browser cache until you create or connect a data file.</div>
+    </section>
+
+    <section id="dashboard" class="pane" aria-label="Dashboard">
+      <div class="dash-grid">
+        <div class="dcard">
+          <div class="dv" id="d-tasks">0/0</div>
+          <div class="dl">tasks completed</div>
+          <div class="progress-bar"><div class="pb-fill" id="d-tbar"></div></div>
+        </div>
+        <div class="dcard"><div class="dv" id="d-logs">0</div><div class="dl">ARC sessions logged</div></div>
+        <div class="dcard"><div class="dv" id="d-grade">—</div><div class="dl">est. grade</div></div>
+        <div class="dcard"><div class="dv" id="d-week">Wk 1</div><div class="dl">current week</div></div>
+      </div>
+      <div class="section-label">Progress by week</div>
+      <div id="d-overview"></div>
+      <div class="section-label with-space">Next deadlines</div>
+      <div id="d-deadlines"></div>
+      <div id="d-loading">Loading saved data...</div>
+    </section>
+
+    <section id="weeks" class="pane on" aria-label="Weekly tasks">
+      <div class="saving" id="save-status"></div>
+      <div class="week-acc" id="weekAcc"></div>
+    </section>
+
+    <section id="arclog" class="pane" aria-label="ARC log">
+      <div class="add-log-form">
+        <div class="form-title">New session log</div>
+        <div class="form-grid">
+          <div class="form-group"><label for="lg-date">Date</label><input type="date" id="lg-date"></div>
+          <div class="form-group"><label for="lg-score">Gradescope score (optional)</label><input type="text" id="lg-score" placeholder="e.g. 8/16 Training B"></div>
+          <div class="form-group"><label for="lg-changed">What I changed</label><input type="text" id="lg-changed" placeholder="e.g. added color-mapping transform"></div>
+          <div class="form-group"><label for="lg-improved">Problems improved</label><input type="text" id="lg-improved" placeholder="e.g. training_b_03, b_07"></div>
+          <div class="form-group"><label for="lg-failing">Still failing</label><input type="text" id="lg-failing" placeholder="e.g. training_b_11"></div>
+          <div class="form-group fg-full"><label for="lg-why">Why it fails</label><textarea id="lg-why" placeholder="e.g. bounding box doesn't handle multi-object grids"></textarea></div>
+        </div>
+        <div class="btn-row"><button class="btn-p" onclick="saveLog()">Save log entry</button></div>
+      </div>
+      <div id="arcLogList"></div>
+    </section>
+
+    <section id="grades" class="pane" aria-label="Grades">
+      <div id="scoreGrid"></div>
+      <div class="grade-box">
+        <div><div class="gb-big" id="gb-pct">—</div><div class="grade-caption">estimated average</div></div>
+        <div><div class="gb-letter" id="gb-letter">—</div><div class="grade-caption">letter grade</div></div>
+        <div class="grade-progress">
+          <div class="progress-caption">progress to A (90%)</div>
+          <div class="progress-bar grade-progress-bar"><div class="pb-fill" id="gb-bar"></div></div>
+        </div>
+      </div>
+      <div class="hint-text">Enter scores as you receive them. Only filled entries count toward the estimate.</div>
+    </section>
+
+    <section id="weekly" class="pane" aria-label="Weekly planning card">
+      <div class="wc-card">
+        <div class="form-title">This week's planning card</div>
+        <div class="wc-fields">
+          <div class="wcf"><label for="wc-dl">Deadline this week</label><input type="text" id="wc-dl" placeholder="e.g. Milestone A — Jun 1"></div>
+          <div class="wcf"><label for="wc-must">Must finish</label><textarea id="wc-must" placeholder="e.g. Submit Milestone A, write journal"></textarea></div>
+          <div class="wcf"><label for="wc-nice">Nice to finish</label><textarea id="wc-nice" placeholder="e.g. Start Set C problems"></textarea></div>
+          <div class="wcf"><label for="wc-arc">ARC progress target</label><input type="text" id="wc-arc" placeholder="e.g. Get 8+ Training B correct locally"></div>
+          <div class="wcf"><label for="wc-lec">Lecture target</label><input type="text" id="wc-lec" placeholder="e.g. Watch lessons 03 and 04"></div>
+          <div class="wcf"><label for="wc-part">Participation target</label><input type="text" id="wc-part" placeholder="e.g. Peer review 2 Milestone A submissions"></div>
+          <div class="wcf"><label for="wc-career">Career blocks protected</label><input type="text" id="wc-career" placeholder="e.g. Tue + Thu evenings for ML prep"></div>
+          <div class="wcf"><label for="wc-notes">Notes / blockers</label><textarea id="wc-notes" placeholder="Anything on your mind this week..."></textarea></div>
+        </div>
+        <div class="btn-row form-actions">
+          <button class="btn-p" onclick="saveWeeklyCard()">Save card</button>
+          <button class="btn-s" onclick="clearWeeklyCard()">Clear</button>
+        </div>
+        <div id="wc-saved">Saved.</div>
+      </div>
+      <div class="section-label">Previous cards</div>
+      <div id="prev-cards"></div>
+    </section>
+  </div>
+
+  <script src="course-data.js"></script>
+  <script src="storage.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
